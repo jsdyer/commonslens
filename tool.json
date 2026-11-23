@@ -1,16 +1,22 @@
 {
-  "id": "coolcode-tool-template",
-  "title": "CoolCode Tool Starter",
-  "description": "A browser-only example that trims lines and removes exact duplicates.",
-  "category": "security",
-  "tags": ["text", "lines", "duplicates"],
+  "id": "commonslens",
+  "title": "Commons Lens",
+  "description": "Find openly licensed images and audio, inspect rights and build a source-linked attribution.",
+  "category": "media",
+  "tags": [
+    "images",
+    "audio",
+    "licences",
+    "Wikimedia",
+    "attribution"
+  ],
   "icon": "scan-search",
-  "url": "/coolcode-tool-template/",
-  "source": "https://github.com/jsdyer/coolcode-tool-template",
+  "url": "/commonslens/",
+  "source": "https://github.com/jsdyer/commonslens",
   "hosting": "project",
   "access": "browser",
   "data_info": {
-    "mode": "local",
-    "detail": "The browser reads the text you paste and compares its lines."
+    "mode": "live",
+    "detail": "Search Wikimedia Commons on demand and retain each work\u2019s creator, original record and reported licence."
   }
 }

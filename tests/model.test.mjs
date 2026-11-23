@@ -1,21 +1,13 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import { cleanLines } from '../web/model.mjs';
-test('trims, removes blanks and preserves first-seen order', () => {
-  assert.deepEqual(cleanLines('  Halifax\nLangley\nHalifax\n\nVancouver  '), {
-    text: 'Halifax\nLangley\nVancouver', count: 3, removed: 1,
-  });
-});
-test('supports Windows and old Mac line endings', () => {
-  assert.equal(cleanLines('a\r\nb\ra').text, 'a\nb');
-});
-test('empty text and whitespace produce an empty result', () => {
-  assert.deepEqual(cleanLines(' \n\t'), { text: '', count: 0, removed: 0 });
-});
-test('preserves case and Unicode', () => {
-  assert.equal(cleanLines('Québec\nquébec\n東京\nQuébec').text, 'Québec\nquébec\n東京');
-});
-test('treats markup as ordinary text', () => {
-  assert.equal(cleanLines('<script>alert(1)</script>\n<script>alert(1)</script>').text, '<script>alert(1)</script>');
-});
-test('rejects non-text input', () => { assert.throws(() => cleanLines(null), TypeError); });
+import test from 'node:test';import assert from 'node:assert/strict';import {safeUrl,plain,queryUrl,normalize,attribution,filterItems,csv,readReceipt,fetchJson,licenseKey} from '../web/model.mjs';
+const config={providers:{wikimedia:'https://commons.wikimedia.org/w/api.php'},pageSize:12};
+const item={id:'1',title:'Harbour',creator:'A photographer',source:'Wikimedia Commons',landing:'https://commons.wikimedia.org/wiki/File:Harbour.jpg',media:null,thumbnail:null,license:'CC BY-SA 4.0',licenseUrl:'https://creativecommons.org/licenses/by-sa/4.0/',type:'image'};
+test('arbitrary queries encode safely and extra presets need no special case',()=>{const u=new URL(queryUrl({provider:'wikimedia',query:'Tokyo + rain',page:2,media:'image'},config));assert.equal(u.searchParams.get('gsroffset'),'12');assert.ok(u.searchParams.get('gsrsearch').endsWith('Tokyo + rain'));assert.equal(u.searchParams.get('origin'),'*');});
+test('audio uses provider filetype and workload bounds',()=>{const u=new URL(queryUrl({provider:'wikimedia',query:'waves',media:'audio'}, {...config,pageSize:900}));assert.equal(u.searchParams.get('gsrlimit'),'20');assert.equal(u.searchParams.get('gsrsearch'),'filetype:audio waves');assert.throws(()=>queryUrl({provider:'wikimedia',query:'x',page:51},config));});
+test('safe URLs reject executable and credential-bearing schemes',()=>{for(const u of ['javascript:alert(1)','data:text/html,bad','https://secret@x.test/'])assert.equal(safeUrl(u),null);assert.equal(safeUrl('https://example.org/'),'https://example.org/');});
+test('metadata markup is converted to text without execution',()=>assert.equal(plain('<a href="javascript:x">A &amp; B</a>'),'A & B'));
+test('Commons normalizes source fields and accepts a genuine empty response',()=>{assert.deepEqual(normalize({batchcomplete:''},'wikimedia').items,[]);const d=normalize({query:{pages:{7:{pageid:7,index:1,title:'File:Example',imageinfo:[{descriptionurl:item.landing,url:'https://example.org/a.jpg',extmetadata:{Artist:{value:'<b>Creator</b>'},LicenseShortName:{value:'CC BY 4.0'}}}]}}}},'wikimedia');assert.equal(d.items[0].creator,'Creator');assert.equal(d.items[0].license,'CC BY 4.0');assert.equal(d.items[0].licenseUrl,null);});
+test('licence filters do not conflate CC BY with additional restrictions',()=>{assert.equal(licenseKey('CC BY-NC-SA 4.0'),'by-nc-sa');assert.equal(filterItems([item],{license:'by'}).length,0);assert.equal(filterItems([item],{license:'by-sa'}).length,1);assert.equal(licenseKey('Public domain'),'publicdomain');});
+test('attribution retains original source and optional changes',()=>{assert.match(attribution(item,'Cropped'),/Changes: Cropped/);assert.ok(attribution(item).includes(item.landing));assert.ok(attribution(item).includes(item.licenseUrl));});
+test('receipts preserve missing optional metadata and reject unsafe or duplicate rows',()=>{const r={schema:'coolcode.commons.v1',capturedAt:'2026-11-23T00:00:00Z',items:[item]};assert.equal(readReceipt(r),r);assert.throws(()=>readReceipt({...r,items:[item,item]}));assert.throws(()=>readReceipt({...r,items:[{...item,thumbnail:'javascript:bad'}]}));});
+test('CSV protects formula-leading source text',()=>assert.match(csv([{...item,title:'=BAD()'}]),/"'=BAD\(\)"/));
+test('HTTP rate limits are actionable and timeout bounds include body parsing',async()=>{await assert.rejects(fetchJson('https://example.org',20,async()=>({ok:false,status:429})),/rate limit/);await assert.rejects(fetchJson('https://example.org',15,async(u,{signal})=>({ok:true,json:()=>new Promise((resolve,reject)=>signal.addEventListener('abort',()=>reject(Error('aborted'))))})),/too long/);});

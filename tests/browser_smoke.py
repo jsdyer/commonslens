@@ -1,53 +1,31 @@
-"""Exercise the built starter at a project subpath in Chromium."""
+"""Fixture-controlled UI tests; live API availability is checked separately."""
 from functools import partial
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from http.server import SimpleHTTPRequestHandler,ThreadingHTTPServer
 from pathlib import Path
-import shutil
-import tempfile
-import threading
-from playwright.sync_api import sync_playwright
-
-ROOT = Path(__file__).resolve().parents[1]
-
-
-class QuietHandler(SimpleHTTPRequestHandler):
-    def log_message(self, *args):
-        pass
-
-
+import json,re,shutil,tempfile,threading
+from playwright.sync_api import sync_playwright,expect
+ROOT=Path(__file__).resolve().parents[1]
+class Quiet(SimpleHTTPRequestHandler):
+ def log_message(self,*args):pass
 def main():
-    screenshots = ROOT / "browser-checks"
-    screenshots.mkdir(exist_ok=True)
-    with tempfile.TemporaryDirectory() as temporary:
-        shutil.copytree(ROOT / "dist", Path(temporary) / "example-tool")
-        server = ThreadingHTTPServer(("127.0.0.1", 0), partial(QuietHandler, directory=temporary))
-        threading.Thread(target=server.serve_forever, daemon=True).start()
-        try:
-            with sync_playwright() as p:
-                browser = p.chromium.launch()
-                page = browser.new_page(viewport={"width": 1280, "height": 1000})
-                errors = []
-                page.on("pageerror", lambda error: errors.append(str(error)))
-                page.goto(f"http://127.0.0.1:{server.server_port}/example-tool/")
-                page.locator("#sample").click()
-                assert page.locator("#output").input_value() == "Halifax\nLangley\nVancouver"
-                assert "1 duplicate removed" in page.locator("#status").inner_text()
-                page.locator("#input").fill('<img src=x onerror="alert(1)">\n<img src=x onerror="alert(1)">')
-                assert page.locator("#output").input_value() == '<img src=x onerror="alert(1)">'
-                assert page.locator("img").count() == 0
-                page.locator("#clear").click()
-                assert page.locator("#output").input_value() == ""
-                page.locator("#sample").click()
-                page.screenshot(path=str(screenshots / "desktop.png"), full_page=True)
-                page.set_viewport_size({"width": 390, "height": 844})
-                assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
-                page.screenshot(path=str(screenshots / "mobile.png"), full_page=True)
-                assert not errors, errors
-                browser.close()
-            print("Browser checks passed: project subpath, sample, clear, safe text and mobile layout")
-        finally:
-            server.shutdown()
-
-
-if __name__ == "__main__":
-    main()
+ out=ROOT/'browser-checks';out.mkdir(exist_ok=True)
+ with tempfile.TemporaryDirectory() as temporary:
+  shutil.copytree(ROOT/'dist',Path(temporary)/'commonslens')
+  server=ThreadingHTTPServer(('127.0.0.1',0),partial(Quiet,directory=temporary));threading.Thread(target=server.serve_forever,daemon=True).start()
+  try:
+   with sync_playwright() as p:
+    browser=p.chromium.launch();page=browser.new_page(viewport={'width':1280,'height':1000});errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
+    data={'batchcomplete':'','query':{'pages':{'1':{'pageid':1,'title':'File:Test Harbour','index':1,'imageinfo':[{'descriptionurl':'https://commons.wikimedia.org/wiki/File:Test_Harbour','mediatype':'BITMAP','extmetadata':{'Artist':{'value':'Test creator'},'LicenseShortName':{'value':'CC BY-SA 4.0'},'LicenseUrl':{'value':'https://creativecommons.org/licenses/by-sa/4.0/'}}}]}}}}
+    page.route('https://commons.wikimedia.org/w/api.php?**',lambda r:r.fulfill(status=200,content_type='application/json',body=json.dumps(data)))
+    page.goto(f'http://127.0.0.1:{server.server_port}/commonslens/');expect(page.locator('#presets button')).to_have_count(3)
+    page.locator('#query').fill('Harbour');page.locator('#search').click();expect(page.locator('#cards')).to_contain_text('Test Harbour')
+    page.get_by_role('button',name='Inspect & credit').click();expect(page.get_by_label('Attribution text')).to_have_value(re.compile('CC BY-SA'))
+    page.get_by_role('button',name='Close',exact=True).click();page.get_by_role('button',name='Shortlist',exact=True).click();expect(page.locator('#saved-count')).to_have_text('1')
+    with page.expect_download() as dl:page.locator('#save').click()
+    receipt=json.loads(Path(dl.value.path()).read_text());assert receipt['schema']=='coolcode.commons.v1'
+    page.screenshot(path=str(out/'desktop.png'),full_page=True)
+    page.set_viewport_size({'width':390,'height':844});assert page.evaluate('document.documentElement.scrollWidth<=innerWidth'), 'mobile overflow';page.screenshot(path=str(out/'mobile.png'),full_page=True)
+    assert not errors,errors;browser.close()
+  finally:server.shutdown()
+ print('Commons Lens browser checks passed')
+if __name__=='__main__':main()

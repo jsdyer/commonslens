@@ -1,0 +1,24 @@
+{
+  "defaultProvider": "wikimedia",
+  "pageSize": 12,
+  "requestTimeoutMs": 20000,
+  "minimumRequestIntervalMs": 1500,
+  "maximumSavedItems": 100,
+  "providers": {
+    "wikimedia": "https://commons.wikimedia.org/w/api.php"
+  },
+  "presets": [
+    {
+      "label": "Halifax waterfront",
+      "query": "Halifax waterfront"
+    },
+    {
+      "label": "Old technology",
+      "query": "vintage computer"
+    },
+    {
+      "label": "Pacific coast",
+      "query": "British Columbia coast"
+    }
+  ]
+}
