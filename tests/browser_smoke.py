@@ -23,6 +23,12 @@ def main():
     page.get_by_role('button',name='Close',exact=True).click();page.get_by_role('button',name='Shortlist',exact=True).click();expect(page.locator('#saved-count')).to_have_text('1')
     with page.expect_download() as dl:page.locator('#save').click()
     receipt=json.loads(Path(dl.value.path()).read_text());assert receipt['schema']=='coolcode.commons.v1'
+    page.locator('#search-mode').select_option('nearby')
+    page.locator('#near-lat').fill('44.649');page.locator('#near-lon').fill('-63.575')
+    # Query is separate from the cached subject search; bypass elapsed debounce deterministically.
+    page.wait_for_timeout(1600)
+    page.locator('#search').click();expect(page.locator('#status')).to_contain_text('geotagged files')
+    expect(page.locator('#next')).to_be_disabled();expect(page.locator('#cards')).to_contain_text('Test Harbour')
     page.screenshot(path=str(out/'desktop.png'),full_page=True)
     page.set_viewport_size({'width':390,'height':844});assert page.evaluate('document.documentElement.scrollWidth<=innerWidth'), 'mobile overflow';page.screenshot(path=str(out/'mobile.png'),full_page=True)
     assert not errors,errors;browser.close()

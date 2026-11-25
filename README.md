@@ -3,7 +3,7 @@
 A public Wikimedia Commons discovery and attribution desk at https://coolcode.ca/commonslens/. Search any subject, inspect creator and licence metadata, build attribution text, and keep a shortlist or dated receipt. No account or API key is required.
 
 <!-- coolcode:guide -->
-Search **Halifax waterfront**, then open **Inspect & credit** on a work to find its original record and reported licence. Licence and creator filters narrow the returned page, not the whole catalogue; inspect later pages or loosen a filter if a page has no matches. **Shortlist** keeps selections only in this tab. Save receipt JSON before closing; an imported receipt is processed locally. Always verify the original record before reusing a work.
+Choose **Pictures of this place** to find geotagged media around a town or coordinates, or search **Halifax waterfront**, then open **Inspect & credit** on a work to find its original record and reported licence. Licence and creator filters narrow the returned page, not the whole catalogue; inspect later pages or loosen a filter if a page has no matches. **Shortlist** keeps selections only in this tab. Save receipt JSON before closing; an imported receipt is processed locally. Always verify the original record before reusing a work.
 <!-- /coolcode:guide -->
 
 ## What it does
@@ -54,3 +54,9 @@ python3 scripts/build.py
 ```
 
 CI additionally runs `tests/browser_smoke.py` for a real UI flow at a project subpath, exports, error preservation, safe text and mobile widths. Tests cover query encoding, correct licence matching, hostile source URLs, normalization, receipts and attribution. The build is offline.
+
+## Pictures of this place
+
+Choose **Pictures of this place**, find a town or landmark, select a named match, then **Search collections**. You can enter arbitrary valid latitude/longitude and a radius up to 10 km. The response is capped at 50 geotagged works; absence does not establish that no pictures exist. Coordinates may represent the camera or subject. Creator/licence/media filters still narrow the returned set and all existing attribution/receipt tools remain available.
+
+Place lookup uses English Wikipedia's public search/coordinates API. The subsequent query uses [Commons geosearch](https://commons.wikimedia.org/wiki/Commons:Search_by_location) with imageinfo metadata. Coordinates are sent only on submission and are not saved. A link such as `?lat=44.649&lon=-63.575` prefills the form without making a request. `?q=Halifax` prefills text search. Copy coordinates for Wiki Trails, and use Screen Places to explore filming locations in the same area. No key or scheduled refresh is needed.

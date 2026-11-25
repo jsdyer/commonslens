@@ -1,14 +1,16 @@
 {
   "id": "commonslens",
   "title": "Commons Lens",
-  "description": "Find openly licensed images and audio, inspect rights and build a source-linked attribution.",
+  "description": "Find reusable images and audio by subject or place, inspect rights and build source-linked attribution.",
   "category": "media",
   "tags": [
     "images",
     "audio",
     "licences",
     "Wikimedia",
-    "attribution"
+    "attribution",
+    "places",
+    "coordinates"
   ],
   "icon": "scan-search",
   "url": "/commonslens/",
